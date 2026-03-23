@@ -1,0 +1,372 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>PlanTrip APC — Planifica viajes con amigos</title>
+  <meta name="description" content="Planifica viajes en grupo, comparte itinerarios y divide gastos fácilmente con PlanTrip APC.">
+  <meta name="theme-color" content="#1A73E8">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+
+<!-- Name Setup (first-time) -->
+<div id="nameSetup" class="name-setup">
+  <div class="name-setup-logo">✈️</div>
+  <h1>PlanTrip APC</h1>
+  <p>Planifica viajes increíbles con tus amigos</p>
+  <input type="text" id="nameInput" class="form-input" placeholder="¿Cómo te llamas?" maxlength="20">
+  <button class="btn-primary" onclick="App.saveName()" id="saveNameBtn">
+    Comenzar la aventura
+    <svg width="20" height="20" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><path d="M5 12h14M12 5l7 7-7 7"/></svg>
+  </button>
+</div>
+
+<!-- Toast -->
+<div id="toast" class="toast"></div>
+
+<div id="app">
+
+  <!-- ========== HOME SCREEN ========== -->
+  <div id="screen-home" class="screen active home-screen">
+    <div class="screen-header">
+      <div class="brand">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3.5 18.5l6-12 4 8 3-4 4 8"/><circle cx="18" cy="5" r="2"/></svg>
+        The Traveler
+      </div>
+      <div class="header-actions">
+        <button class="icon-btn" onclick="App.showSettings()" id="settingsBtn" title="Ajustes">
+          <svg width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 00.33 1.82l.06.06a2 2 0 01-2.83 2.83l-.06-.06a1.65 1.65 0 00-1.82-.33 1.65 1.65 0 00-1 1.51V21a2 2 0 01-4 0v-.09A1.65 1.65 0 009 19.4a1.65 1.65 0 00-1.82.33l-.06.06a2 2 0 01-2.83-2.83l.06-.06A1.65 1.65 0 004.68 15a1.65 1.65 0 00-1.51-1H3a2 2 0 010-4h.09A1.65 1.65 0 004.6 9a1.65 1.65 0 00-.33-1.82l-.06-.06a2 2 0 012.83-2.83l.06.06A1.65 1.65 0 009 4.68a1.65 1.65 0 001-1.51V3a2 2 0 014 0v.09a1.65 1.65 0 001 1.51 1.65 1.65 0 001.82-.33l.06-.06a2 2 0 012.83 2.83l-.06.06A1.65 1.65 0 0019.4 9a1.65 1.65 0 001.51 1H21a2 2 0 010 4h-.09a1.65 1.65 0 00-1.51 1z"/></svg>
+        </button>
+      </div>
+    </div>
+
+    <div class="greeting">
+      <p class="greeting-sub">👋 ¡Hola!</p>
+      <h1>¡Buenos días!,<br><span class="user-name" id="greetingName">Alex</span>.</h1>
+      <p class="greeting-tagline">¿Listo para tu próxima aventura?</p>
+    </div>
+
+    <!-- Create Trip -->
+    <div class="create-trip-card" id="createTripCard">
+      <h2>
+        <svg width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></svg>
+        Crear un viaje
+      </h2>
+      <div class="form-group">
+        <label>Destino</label>
+        <input type="text" id="tripDestination" class="form-input" placeholder="Ej: Tokio, París, Cancún...">
+      </div>
+      <div class="form-row">
+        <div class="form-group">
+          <label>Inicio</label>
+          <input type="date" id="tripStartDate" class="form-input">
+        </div>
+        <div class="form-group">
+          <label>Fin</label>
+          <input type="date" id="tripEndDate" class="form-input">
+        </div>
+      </div>
+      <button class="btn-primary" onclick="App.createTrip()" id="createTripBtn">
+        Empezar a planificar
+        <svg width="18" height="18" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><path d="M5 12h14M12 5l7 7-7 7"/></svg>
+      </button>
+    </div>
+
+    <!-- Recent trips -->
+    <div class="section-divider">
+      <span>Tus viajes recientes</span>
+    </div>
+    <div id="recentTrips" class="recent-trips">
+      <!-- Dynamically populated -->
+    </div>
+
+    <!-- Join Trip -->
+    <div class="join-trip-card">
+      <h2>
+        <svg width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M15 3h4a2 2 0 012 2v14a2 2 0 01-2 2h-4M10 17l5-5-5-5M13 12H3"/></svg>
+        Unirse a un viaje
+      </h2>
+      <div class="join-row">
+        <input type="text" id="joinCodeInput" class="form-input" placeholder="Ej: PARIS2026" maxlength="20">
+        <button class="btn-primary" onclick="App.joinTrip()" id="joinTripBtn">Unirse</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ========== DASHBOARD SCREEN ========== -->
+  <div id="screen-dashboard" class="screen dashboard-screen">
+    <div id="dashNoTrip" class="no-trip-state">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="12" cy="12" r="10"/><path d="M2 12h20M12 2a15.3 15.3 0 014 10 15.3 15.3 0 01-4 10 15.3 15.3 0 01-4-10A15.3 15.3 0 0112 2z"/></svg>
+      <h2>Sin viaje seleccionado</h2>
+      <p>Crea o únete a un viaje desde la pantalla de inicio</p>
+      <button class="btn-primary btn-sm" onclick="App.navigate('home')">Ir al inicio</button>
+    </div>
+
+    <div id="dashContent" style="display:none;">
+      <div class="dash-hero">
+        <button class="dash-back-btn" onclick="App.navigate('home')" id="dashBackBtn">
+          <svg width="20" height="20" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><path d="M19 12H5M12 19l-7-7 7-7"/></svg>
+        </button>
+        <img id="dashHeroImg" class="dash-hero-img" src="" alt="Destino">
+        <div class="dash-hero-overlay">
+          <span class="dash-hero-tag">GRUPO DE VIAJE</span>
+          <h2 id="dashTripTitle">Viaje a Tokio</h2>
+          <div class="dash-hero-code" onclick="App.copyCode()" id="dashTripCode" title="Copiar código">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 01-2-2V4a2 2 0 012-2h9a2 2 0 012 2v1"/></svg>
+            <span id="dashCodeText">TK-8892-JP</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="dash-content">
+        <div class="dash-section">
+          <div class="dash-section-title">Viajeros</div>
+          <div id="dashMembers" class="members-row"></div>
+        </div>
+
+        <div class="dash-section">
+          <div class="dash-section-title">Resumen</div>
+          <div class="stats-grid">
+            <div class="stat-card">
+              <div class="stat-value" id="dashTotalExpenses">€0</div>
+              <div class="stat-label">Gastos totales</div>
+            </div>
+            <div class="stat-card">
+              <div class="stat-value" id="dashYourBalance">€0</div>
+              <div class="stat-label">Tu saldo</div>
+            </div>
+          </div>
+
+          <div class="balance-bar-wrapper">
+            <div class="balance-bar-label">
+              <span>Saldo Actual</span>
+              <span id="dashBalanceAmount">€0.00</span>
+            </div>
+            <div class="balance-bar">
+              <div id="dashBalanceFill" class="balance-bar-fill" style="width: 50%; background: var(--primary);"></div>
+            </div>
+          </div>
+        </div>
+
+        <div class="dash-section">
+          <div class="dash-section-title">Acciones rápidas</div>
+          <div class="stats-grid">
+            <button class="btn-secondary" onclick="App.navigate('itinerary')" id="goItineraryBtn">
+              <svg width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="18" rx="2"/><path d="M16 2v4M8 2v4M3 10h18"/></svg>
+              Itinerario
+            </button>
+            <button class="btn-secondary" onclick="App.navigate('expenses')" id="goExpensesBtn">
+              <svg width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M12 1v22M17 5H9.5a3.5 3.5 0 000 7h5a3.5 3.5 0 010 7H6"/></svg>
+              Gastos
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ========== ITINERARY SCREEN ========== -->
+  <div id="screen-itinerary" class="screen itinerary-screen">
+
+    <div id="itinNoTrip" class="no-trip-state">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="3" y="4" width="18" height="18" rx="2"/><path d="M16 2v4M8 2v4M3 10h18"/></svg>
+      <h2>Sin itinerario</h2>
+      <p>Selecciona un viaje para ver el itinerario</p>
+      <button class="btn-primary btn-sm" onclick="App.navigate('home')">Ir al inicio</button>
+    </div>
+
+    <div id="itinContent" style="display:none;">
+      <div class="itin-header">
+        <p class="itin-trip-name" id="itinTripLabel">El Viajero</p>
+        <h2 id="itinTitle">Tour de Primavera en Tokio</h2>
+        <p class="itin-dates" id="itinDates">14 de Marzo — 21 de Marzo, 2026</p>
+      </div>
+      <div class="itin-body" id="itinBody">
+        <!-- Days and activities -->
+      </div>
+    </div>
+  </div>
+
+  <!-- ========== EXPENSES SCREEN ========== -->
+  <div id="screen-expenses" class="screen expenses-screen">
+
+    <div id="expNoTrip" class="no-trip-state">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M12 1v22M17 5H9.5a3.5 3.5 0 000 7h5a3.5 3.5 0 010 7H6"/></svg>
+      <h2>Sin gastos</h2>
+      <p>Selecciona un viaje para gestionar los gastos</p>
+      <button class="btn-primary btn-sm" onclick="App.navigate('home')">Ir al inicio</button>
+    </div>
+
+    <div id="expContent" style="display:none;">
+      <div class="screen-header">
+        <div class="brand">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3.5 18.5l6-12 4 8 3-4 4 8"/><circle cx="18" cy="5" r="2"/></svg>
+          The Traveler
+        </div>
+      </div>
+
+      <div class="exp-header">
+        <p class="exp-total-label">Gastos totales del viaje</p>
+        <div class="exp-total" id="expTotal"><span class="currency">€</span>0.00</div>
+        <div class="exp-per-person" id="expPerPerson">
+          <!-- Per person breakdown -->
+        </div>
+      </div>
+
+      <div class="exp-body">
+        <div class="section-divider">
+          <span>Saldos</span>
+        </div>
+        <div id="expBalances" class="balance-cards">
+          <!-- Balance cards -->
+        </div>
+
+        <div id="expSettlements">
+          <!-- Settlement suggestions -->
+        </div>
+
+        <div class="section-divider">
+          <span>Historial de gastos</span>
+        </div>
+        <div id="expList" class="expense-list">
+          <!-- Expense items -->
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ========== BOTTOM NAV ========== -->
+  <nav class="bottom-nav" id="bottomNav">
+    <button class="nav-item active" onclick="App.navigate('home')" data-screen="home" id="navHome">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 9l9-7 9 7v11a2 2 0 01-2 2H5a2 2 0 01-2-2z"/><path d="M9 22V12h6v10"/></svg>
+      <span>Inicio</span>
+    </button>
+    <button class="nav-item" onclick="App.navigate('itinerary')" data-screen="itinerary" id="navItinerary">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="4" width="18" height="18" rx="2"/><path d="M16 2v4M8 2v4M3 10h18"/></svg>
+      <span>Itinerario</span>
+    </button>
+    <button class="nav-item" onclick="App.navigate('dashboard')" data-screen="dashboard" id="navDashboard">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="M2 12h20M12 2a15.3 15.3 0 014 10 15.3 15.3 0 01-4 10 15.3 15.3 0 01-4-10A15.3 15.3 0 0112 2z"/></svg>
+      <span>Dashboard</span>
+    </button>
+    <button class="nav-item" onclick="App.navigate('expenses')" data-screen="expenses" id="navExpenses">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 1v22M17 5H9.5a3.5 3.5 0 000 7h5a3.5 3.5 0 010 7H6"/></svg>
+      <span>Gastos</span>
+    </button>
+  </nav>
+
+</div><!-- /app -->
+
+<!-- FAB -->
+<button class="fab hidden" id="fab" onclick="App.onFabClick()">
+  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M12 5v14M5 12h14"/></svg>
+</button>
+
+<!-- ========== ACTIVITY MODAL ========== -->
+<div class="modal-backdrop" id="activityModal">
+  <div class="modal">
+    <div class="modal-handle"></div>
+    <h3>Nueva actividad</h3>
+    <div class="form-group">
+      <label>Título</label>
+      <input type="text" id="actTitle" class="form-input" placeholder="Ej: Almuerzo en Sushi Kyubey">
+    </div>
+    <div class="form-row">
+      <div class="form-group">
+        <label>Hora</label>
+        <input type="time" id="actTime" class="form-input">
+      </div>
+      <div class="form-group">
+        <label>Día</label>
+        <select id="actDay" class="form-input"></select>
+      </div>
+    </div>
+    <div class="form-group">
+      <label>Ubicación</label>
+      <input type="text" id="actLocation" class="form-input" placeholder="Ej: Terminal 1, Narita">
+    </div>
+    <div class="form-group">
+      <label>Notas (opcional)</label>
+      <input type="text" id="actNotes" class="form-input" placeholder="Reserva confirmada, etc.">
+    </div>
+    <button class="btn-primary" onclick="App.saveActivity()" id="saveActivityBtn">
+      Añadir actividad
+      <svg width="18" height="18" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><path d="M5 13l4 4L19 7"/></svg>
+    </button>
+    <button class="btn-secondary" onclick="App.closeModal('activityModal')" style="margin-top:8px" id="cancelActivityBtn">Cancelar</button>
+  </div>
+</div>
+
+<!-- ========== EXPENSE MODAL ========== -->
+<div class="modal-backdrop" id="expenseModal">
+  <div class="modal">
+    <div class="modal-handle"></div>
+    <h3>Nuevo gasto</h3>
+    <div class="form-group">
+      <label>Descripción</label>
+      <input type="text" id="expDesc" class="form-input" placeholder="Ej: Cena en restaurante">
+    </div>
+    <div class="form-group">
+      <label>Cantidad (€)</label>
+      <input type="number" id="expAmount" class="form-input" placeholder="0.00" step="0.01" min="0">
+    </div>
+    <div class="form-group">
+      <label>Pagado por</label>
+      <select id="expPaidBy" class="form-input"></select>
+    </div>
+    <div class="form-group">
+      <label>Tipo de reparto</label>
+      <div class="split-toggle" id="splitToggle">
+        <button class="active" onclick="App.setSplitType('equal')" data-type="equal">Partes iguales</button>
+        <button onclick="App.setSplitType('custom')" data-type="custom">Personalizado</button>
+      </div>
+    </div>
+    <div class="form-group">
+      <label>Dividir entre</label>
+      <div id="expSplitMembers" class="chip-selector"></div>
+    </div>
+    <div id="customAmounts" style="display:none;">
+      <!-- Custom amounts per person -->
+    </div>
+    <button class="btn-primary" onclick="App.saveExpense()" id="saveExpenseBtn">
+      Registrar gasto
+      <svg width="18" height="18" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><path d="M5 13l4 4L19 7"/></svg>
+    </button>
+    <button class="btn-secondary" onclick="App.closeModal('expenseModal')" style="margin-top:8px" id="cancelExpenseBtn">Cancelar</button>
+  </div>
+</div>
+
+<!-- ========== SETTINGS MODAL ========== -->
+<div class="modal-backdrop" id="settingsModal">
+  <div class="modal">
+    <div class="modal-handle"></div>
+    <h3>⚙️ Ajustes</h3>
+    <div class="form-group">
+      <label>Tu nombre</label>
+      <input type="text" id="settingsName" class="form-input" placeholder="Tu nombre">
+    </div>
+    <button class="btn-primary" onclick="App.updateName()" id="updateNameBtn">Guardar cambios</button>
+    <button class="btn-secondary" onclick="App.closeModal('settingsModal')" style="margin-top:8px" id="closeSettingsBtn">Cerrar</button>
+  </div>
+</div>
+
+<!-- ========== CONFIRMATION MODAL ========== -->
+<div class="modal-backdrop" id="confirmModal">
+  <div class="modal">
+    <div class="modal-handle"></div>
+    <h3 id="confirmTitle">¿Estás seguro?</h3>
+    <p id="confirmMessage" class="modal-text">Esta acción no se puede deshacer.</p>
+    <div class="form-row" style="margin-top: 20px;">
+      <button class="btn-secondary" onclick="App.closeModal('confirmModal')" id="confirmCancelBtn">Cancelar</button>
+      <button class="btn-primary btn-danger" id="confirmActionBtn">Confirmar</button>
+    </div>
+  </div>
+</div>
+
+<script src="js/app.js"></script>
+</body>
+</html>
