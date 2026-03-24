@@ -5,7 +5,10 @@ const path = require('path');
 
 const app = express();
 const PORT = process.env.PORT || 3000;
-const DATA_FILE = path.join(__dirname, 'data.json');
+
+// On Render, we can use a persistent disk. By default we use the current folder.
+const DATA_DIR = process.env.DISK_PATH || __dirname;
+const DATA_FILE = path.join(DATA_DIR, 'data.json');
 
 app.use(cors());
 app.use(express.json());
