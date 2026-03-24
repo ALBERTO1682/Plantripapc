@@ -1,0 +1,13 @@
+services:
+  - type: web
+    name: plantripapc
+    runtime: node
+    buildCommand: npm install
+    startCommand: node server.js
+    envVars:
+      - key: NODE_ENV
+        value: production
+    disk:
+      name: plantrip-data
+      mountPath: /data
+      sizeGB: 1

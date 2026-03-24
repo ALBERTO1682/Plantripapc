@@ -18,7 +18,9 @@ let trips = [];
 try {
   if (fs.existsSync(DATA_FILE)) {
     const data = fs.readFileSync(DATA_FILE, 'utf8');
-    trips = JSON.parse(data);
+    if (data.trim()) {
+      trips = JSON.parse(data);
+    }
   }
 } catch (e) {
   console.error('Error reading data file:', e);

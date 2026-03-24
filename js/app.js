@@ -292,8 +292,8 @@ const App = (() => {
   }
 
   // ---- COPY CODE ----
-  function copyCode() {
-    const trip = getCurrentTrip();
+  function copyCode(tripId) {
+    const trip = tripId ? trips.find(t => t.id === tripId) : getCurrentTrip();
     if (!trip) return;
     navigator.clipboard.writeText(trip.code).then(() => {
       showToast('Código copiado: #' + trip.code, 'success');
@@ -307,13 +307,17 @@ const App = (() => {
     if (!trip) return;
     appConfirm('Eliminar viaje', `¿Seguro que quieres eliminar el viaje a ${trip.destination}?`, async () => {
       try {
-        await fetch(`${API_URL}/${id}`, { method: 'DELETE' });
+        const res = await fetch(`${API_URL}/${id}`, { method: 'DELETE' });
+        if (!res.ok) throw new Error('Error al eliminar');
+        
         trips = trips.filter(t => t.id !== id);
         if (currentTripId === id) {
           currentTripId = null;
           localStorage.removeItem('plantrip_currentTrip');
+          navigate('home');
+        } else {
+          renderHome();
         }
-        renderHome();
         showToast('Viaje eliminado');
       } catch (e) {
         console.error(e);
@@ -395,6 +399,9 @@ const App = (() => {
     document.getElementById('dashCodeText').textContent = trip.code;
 
     // Add delete trip button to hero
+    const existingBtn = document.querySelector('.dash-delete-btn');
+    if (existingBtn) existingBtn.remove();
+    
     const heroBtn = document.createElement('button');
     heroBtn.className = 'dash-delete-btn';
     heroBtn.innerHTML = '<svg width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M3 6h18m-2 0v14a2 2 0 01-2 2H7a2 2 0 01-2-2V6m3 0V4a2 2 0 012-2h4a2 2 0 012 2v2"/></svg>';
