@@ -1,0 +1,15 @@
+[
+  {
+    "id": "trip_test",
+    "code": "TEST2026",
+    "destination": "Madrid",
+    "members": [
+      {
+        "id": "user1",
+        "name": "TestBot"
+      }
+    ],
+    "activities": [],
+    "expenses": []
+  }
+]

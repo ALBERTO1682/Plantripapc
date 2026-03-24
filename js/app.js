@@ -54,19 +54,39 @@ const App = (() => {
     return `${prefix}${year}`;
   }
 
-  // ---- LocalStorage ----
+  // ---- LocalStorage & API ----
+  const API_URL = window.location.hostname === 'localhost' ? 'http://localhost:3000/api/trips' : '/api/trips';
+
   function save() {
     localStorage.setItem('plantrip_user', JSON.stringify(user));
-    localStorage.setItem('plantrip_trips', JSON.stringify(trips));
     if (currentTripId) localStorage.setItem('plantrip_currentTrip', currentTripId);
+
+    // Sincronizar el viaje actual con el backend siempre que haya cambios
+    const trip = getCurrentTrip();
+    if (trip && trip.id) {
+      fetch(`${API_URL}/${trip.id}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(trip)
+      }).catch(e => console.error('Error sincronizando el viaje:', e));
+    }
   }
 
-  function load() {
+  async function load() {
     try {
       user = JSON.parse(localStorage.getItem('plantrip_user'));
-      trips = JSON.parse(localStorage.getItem('plantrip_trips')) || [];
       currentTripId = localStorage.getItem('plantrip_currentTrip') || null;
+
+      if (user) {
+        const res = await fetch(`${API_URL}/user/${user.id}`);
+        if (res.ok) {
+          trips = await res.json();
+        } else {
+          trips = [];
+        }
+      }
     } catch(e) {
+      console.error('Error cargando datos:', e);
       user = null;
       trips = [];
     }
@@ -197,45 +217,71 @@ const App = (() => {
       createdAt: new Date().toISOString()
     };
 
-    trips.push(trip);
-    currentTripId = trip.id;
-    save();
+    try {
+      const res = await fetch(API_URL, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(trip)
+      });
+      if (!res.ok) throw new Error('Error en el servidor');
+      
+      const savedTrip = await res.json();
+      trips.push(savedTrip);
+      currentTripId = savedTrip.id;
+      
+      // Solo guardamos en localStorage, no llamamos a save() para evitar un PUT innecesario
+      localStorage.setItem('plantrip_currentTrip', currentTripId);
 
-    // Clear form
-    document.getElementById('tripDestination').value = '';
-    document.getElementById('tripStartDate').value = '';
-    document.getElementById('tripEndDate').value = '';
+      // Limpiar formulario
+      document.getElementById('tripDestination').value = '';
+      document.getElementById('tripStartDate').value = '';
+      document.getElementById('tripEndDate').value = '';
 
-    showToast(`¡Viaje a ${destination} creado! Código: #${code}`, 'success');
-    navigate('dashboard');
+      showToast(`¡Viaje a ${destination} creado! Código: #${code}`, 'success');
+      navigate('dashboard');
+    } catch (e) {
+      console.error(e);
+      showToast('Error al crear el viaje', 'error');
+    }
   }
 
   // ---- JOIN TRIP ----
-  function joinTrip() {
+  async function joinTrip() {
     const code = document.getElementById('joinCodeInput').value.trim().toUpperCase();
     if (!code) { showToast('Introduce un código de viaje', 'error'); return; }
 
-    const trip = trips.find(t => t.code.toUpperCase() === code);
-    if (!trip) {
-      showToast('Viaje no encontrado. Comprueba el código.', 'error');
-      return;
-    }
+    try {
+      const res = await fetch(`${API_URL}/join`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ code, user })
+      });
+      
+      if (!res.ok) {
+        showToast('Viaje no encontrado o error. Comprueba el código.', 'error');
+        return;
+      }
+      
+      const trip = await res.json();
+      
+      const existingIdx = trips.findIndex(t => t.id === trip.id);
+      if (existingIdx !== -1) {
+        trips[existingIdx] = trip;
+        showToast('¡Ya estás en este viaje!');
+      } else {
+        trips.push(trip);
+        showToast(`¡Te uniste al viaje a ${trip.destination}!`, 'success');
+      }
 
-    // Check if already a member
-    if (trip.members.some(m => m.id === user.id)) {
       currentTripId = trip.id;
-      save();
+      localStorage.setItem('plantrip_currentTrip', currentTripId);
+      
+      document.getElementById('joinCodeInput').value = '';
       navigate('dashboard');
-      showToast('¡Ya estás en este viaje!');
-      return;
+    } catch (e) {
+      console.error(e);
+      showToast('Error de conexión', 'error');
     }
-
-    trip.members.push({ id: user.id, name: user.name });
-    currentTripId = trip.id;
-    save();
-    document.getElementById('joinCodeInput').value = '';
-    showToast(`¡Te uniste al viaje a ${trip.destination}!`, 'success');
-    navigate('dashboard');
   }
 
   // ---- SELECT TRIP ----
@@ -259,12 +305,20 @@ const App = (() => {
   function deleteTrip(id) {
     const trip = trips.find(t => t.id === id);
     if (!trip) return;
-    appConfirm('Eliminar viaje', `¿Seguro que quieres eliminar el viaje a ${trip.destination}?`, () => {
-      trips = trips.filter(t => t.id !== id);
-      if (currentTripId === id) currentTripId = null;
-      save();
-      renderHome();
-      showToast('Viaje eliminado');
+    appConfirm('Eliminar viaje', `¿Seguro que quieres eliminar el viaje a ${trip.destination}?`, async () => {
+      try {
+        await fetch(`${API_URL}/${id}`, { method: 'DELETE' });
+        trips = trips.filter(t => t.id !== id);
+        if (currentTripId === id) {
+          currentTripId = null;
+          localStorage.removeItem('plantrip_currentTrip');
+        }
+        renderHome();
+        showToast('Viaje eliminado');
+      } catch (e) {
+        console.error(e);
+        showToast('Error al eliminar', 'error');
+      }
     });
   }
 
@@ -307,7 +361,10 @@ const App = (() => {
           </div>
           <div class="trip-card-actions">
             <span class="trip-card-code">#${trip.code}</span>
-            <button class="action-btn-sm delete" onclick="App.deleteTrip('${trip.id}')" title="Eliminar viaje">
+            <button class="action-btn-sm" onclick="event.stopPropagation(); App.copyCode('${trip.id}')" title="Copiar código">
+              <svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z"/></svg>
+            </button>
+            <button class="action-btn-sm delete" onclick="event.stopPropagation(); App.deleteTrip('${trip.id}')" title="Eliminar viaje">
               <svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M3 6h18m-2 0v14a2 2 0 01-2 2H7a2 2 0 01-2-2V6m3 0V4a2 2 0 012-2h4a2 2 0 012 2v2"/></svg>
             </button>
           </div>
@@ -928,14 +985,14 @@ const App = (() => {
   //   INIT
   // ==============================
   function init() {
-    load();
-
-    if (!user) {
-      document.getElementById('nameSetup').classList.remove('hidden');
-    } else {
-      document.getElementById('nameSetup').classList.add('hidden');
-      renderHome();
-    }
+    load().then(() => {
+      if (!user) {
+        document.getElementById('nameSetup').classList.remove('hidden');
+      } else {
+        document.getElementById('nameSetup').classList.add('hidden');
+        renderHome();
+      }
+    });
 
     // Close modals on backdrop click
     document.querySelectorAll('.modal-backdrop').forEach(backdrop => {
