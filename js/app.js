@@ -651,18 +651,22 @@ const App = (() => {
     noTrip.style.display = 'none';
     content.style.display = '';
 
-    const totalExpenses = trip.expenses.reduce((sum, e) => sum + e.amount, 0);
+    const totalExpenses = trip.expenses
+      .filter(e => !e.isSettlement)
+      .reduce((sum, e) => sum + e.amount, 0);
     document.getElementById('expTotal').innerHTML = `<span class="currency">€</span>${totalExpenses.toFixed(2)}`;
 
     // Gastos personales (cuanto te toca pagar a ti de todo el viaje)
     let personalTotal = 0;
-    trip.expenses.forEach(e => {
-      if (e.shares && e.shares[user.id] !== undefined) {
-        personalTotal += e.shares[user.id];
-      } else if (e.splitBetween.includes(user.id)) {
-        personalTotal += e.amount / e.splitBetween.length;
-      }
-    });
+    trip.expenses
+      .filter(e => !e.isSettlement)
+      .forEach(e => {
+        if (e.shares && e.shares[user.id] !== undefined) {
+          personalTotal += e.shares[user.id];
+        } else if (e.splitBetween.includes(user.id)) {
+          personalTotal += e.amount / e.splitBetween.length;
+        }
+      });
     document.getElementById('expPersonal').innerHTML = `<span class="currency">€</span>${personalTotal.toFixed(2)}`;
 
     // Per person spent
@@ -940,7 +944,8 @@ const App = (() => {
         splitBetween: [toId],
         shares: { [toId]: amount },
         date: new Date().toISOString(),
-        createdBy: user.id
+        createdBy: user.id,
+        isSettlement: true
       };
 
       trip.expenses.push(settlement);
