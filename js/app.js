@@ -654,6 +654,17 @@ const App = (() => {
     const totalExpenses = trip.expenses.reduce((sum, e) => sum + e.amount, 0);
     document.getElementById('expTotal').innerHTML = `<span class="currency">€</span>${totalExpenses.toFixed(2)}`;
 
+    // Gastos personales (cuanto te toca pagar a ti de todo el viaje)
+    let personalTotal = 0;
+    trip.expenses.forEach(e => {
+      if (e.shares && e.shares[user.id] !== undefined) {
+        personalTotal += e.shares[user.id];
+      } else if (e.splitBetween.includes(user.id)) {
+        personalTotal += e.amount / e.splitBetween.length;
+      }
+    });
+    document.getElementById('expPersonal').innerHTML = `<span class="currency">€</span>${personalTotal.toFixed(2)}`;
+
     // Per person spent
     const perPersonEl = document.getElementById('expPerPerson');
     const perPersonSpent = {};
@@ -706,6 +717,7 @@ const App = (() => {
                 <span class="settlement-arrow">→</span>
                 <strong>${escapeHtml(toName)}</strong>
                 <span class="settlement-amount">${formatCurrency(s.amount)}</span>
+                <button class="btn-settle" onclick="App.settleDebt('${s.from}', '${s.to}', ${s.amount})">Pagado</button>
               </div>
             `;
           }).join('')}
@@ -912,6 +924,32 @@ const App = (() => {
     });
   }
 
+  function settleDebt(fromId, toId, amount) {
+    const trip = getCurrentTrip();
+    if (!trip) return;
+
+    appConfirm('Liquidar deuda', `¿Confirmas que se han pagado ${formatCurrency(amount)}?`, () => {
+      const fromName = trip.members.find(m => m.id === fromId)?.name || 'Alguien';
+      const toName = trip.members.find(m => m.id === toId)?.name || 'Alguien';
+
+      const settlement = {
+        id: 'exp_' + Date.now(),
+        description: `Liquidación: ${fromName} → ${toName}`,
+        amount: amount,
+        paidBy: fromId,
+        splitBetween: [toId],
+        shares: { [toId]: amount },
+        date: new Date().toISOString(),
+        createdBy: user.id
+      };
+
+      trip.expenses.push(settlement);
+      save();
+      renderExpenses();
+      showToast('Deuda liquidada ✓', 'success');
+    });
+  }
+
   // ==============================
   //   TRICOUNT ALGORITHM
   // ==============================
@@ -1080,6 +1118,7 @@ const App = (() => {
     deleteExpense,
     openEditExpenseModal,
     deleteTrip,
-    setSplitType
+    setSplitType,
+    settleDebt
   };
 })();
