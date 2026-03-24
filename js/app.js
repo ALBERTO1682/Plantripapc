@@ -55,10 +55,13 @@ const App = (() => {
   }
 
   // ---- LocalStorage & API ----
-  const API_URL = window.location.hostname === 'localhost' ? 'http://localhost:3000/api/trips' : '/api/trips';
+  const API_URL = (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1' || window.location.protocol === 'file:')
+    ? 'http://localhost:3000/api/trips'
+    : '/api/trips';
 
   function save() {
     localStorage.setItem('plantrip_user', JSON.stringify(user));
+    localStorage.setItem('plantrip_trips', JSON.stringify(trips));
     if (currentTripId) localStorage.setItem('plantrip_currentTrip', currentTripId);
 
     // Sincronizar el viaje actual con el backend siempre que haya cambios
@@ -74,21 +77,29 @@ const App = (() => {
 
   async function load() {
     try {
-      user = JSON.parse(localStorage.getItem('plantrip_user'));
+      const storedUser = localStorage.getItem('plantrip_user');
+      if (storedUser) user = JSON.parse(storedUser);
+      
+      // Carga inicial de viajes desde localStorage (como respaldo mientras el servidor responde)
+      trips = JSON.parse(localStorage.getItem('plantrip_trips')) || [];
+      
       currentTripId = localStorage.getItem('plantrip_currentTrip') || null;
 
       if (user) {
-        const res = await fetch(`${API_URL}/user/${user.id}`);
-        if (res.ok) {
-          trips = await res.json();
-        } else {
-          trips = [];
+        try {
+          // Intentamos cargar viajes actualizados del servidor
+          const res = await fetch(`${API_URL}/user/${user.id}`);
+          if (res.ok) {
+            trips = await res.json();
+            // Actualizamos el respaldo local con lo que diga el servidor
+            localStorage.setItem('plantrip_trips', JSON.stringify(trips));
+          }
+        } catch (fetchErr) {
+          console.warn('Servidor en pausa o desconectado. Usando datos locales.', fetchErr);
         }
       }
     } catch(e) {
-      console.error('Error cargando datos:', e);
-      user = null;
-      trips = [];
+      console.error('Error cargando datos de localStorage:', e);
     }
   }
 
@@ -122,11 +133,43 @@ const App = (() => {
       fab.classList.add('hidden');
     }
 
-    // Refresh screen content
+    // Refrescar contenido de la pantalla
     if (screen === 'home') renderHome();
     if (screen === 'dashboard') renderDashboard();
     if (screen === 'itinerary') renderItinerary();
     if (screen === 'expenses') renderExpenses();
+  }
+
+  // ---- SYNC ----
+  async function syncCurrentTrip() {
+    if (!currentTripId || !user) return;
+    
+    try {
+      const res = await fetch(`${API_URL}/${currentTripId}`);
+      if (res.ok) {
+        const freshTrip = await res.json();
+        const idx = trips.findIndex(t => t.id === currentTripId);
+        
+        // Solo refrescamos si hay cambios reales en los datos para evitar parpadeos innecesarios
+        const oldData = JSON.stringify(trips[idx]);
+        const newData = JSON.stringify(freshTrip);
+        
+        if (oldData !== newData) {
+           if (idx !== -1) trips[idx] = freshTrip;
+           else trips.push(freshTrip);
+           
+           localStorage.setItem('plantrip_trips', JSON.stringify(trips));
+           
+           // Refrescar pantalla actual sin navegar si es necesario
+           if (currentScreen === 'dashboard') renderDashboard();
+           if (currentScreen === 'itinerary') renderItinerary();
+           if (currentScreen === 'expenses') renderExpenses();
+           if (currentScreen === 'home') renderHome();
+        }
+      }
+    } catch (e) {
+      console.warn('Error en auto-sincronización:', e);
+    }
   }
 
   // ---- FAB Click ----
@@ -1009,6 +1052,9 @@ const App = (() => {
         }
       });
     });
+
+    // Iniciar auto-sincronización cada 10 segundos
+    setInterval(syncCurrentTrip, 10000);
   }
 
   // Boot

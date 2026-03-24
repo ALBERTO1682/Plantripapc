@@ -10,6 +10,11 @@ const PORT = process.env.PORT || 3000;
 const DATA_DIR = process.env.DISK_PATH || __dirname;
 const DATA_FILE = path.join(DATA_DIR, 'data.json');
 
+// Ensure data directory exists
+if (!fs.existsSync(DATA_DIR)) {
+  fs.mkdirSync(DATA_DIR, { recursive: true });
+}
+
 app.use(cors());
 app.use(express.json());
 
