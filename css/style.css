@@ -275,7 +275,7 @@ img {
   left: 50%;
   transform: translateX(-50%);
   width: 100%;
-  height: var(--nav-height);
+  height: calc(var(--nav-height) + env(safe-area-inset-bottom, 0px));
   background: var(--bg-glass);
   backdrop-filter: var(--glass-blur);
   -webkit-backdrop-filter: var(--glass-blur);
@@ -284,7 +284,7 @@ img {
   align-items: center;
   justify-content: space-around;
   z-index: 100;
-  padding-bottom: env(safe-area-inset-bottom, 0);
+  padding-bottom: env(safe-area-inset-bottom, 0px);
   box-shadow: 0 -4px 12px rgba(0, 0, 0, 0.05);
 }
 

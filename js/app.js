@@ -257,6 +257,7 @@ const App = (() => {
       imageUrl,
       activities: [],
       expenses: [],
+      createdBy: user.id,
       createdAt: new Date().toISOString()
     };
 
@@ -348,6 +349,14 @@ const App = (() => {
   function deleteTrip(id) {
     const trip = trips.find(t => t.id === id);
     if (!trip) return;
+
+    // Verificar si el usuario es el creador
+    const isCreator = trip.createdBy === user.id || (!trip.createdBy && trip.members[0]?.id === user.id);
+    if (!isCreator) {
+      showToast('Solo el creador puede eliminar el viaje', 'error');
+      return;
+    }
+
     appConfirm('Eliminar viaje', `¿Seguro que quieres eliminar el viaje a ${trip.destination}?`, async () => {
       try {
         const res = await fetch(`${API_URL}/${id}`, { method: 'DELETE' });
