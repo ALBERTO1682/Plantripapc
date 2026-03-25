@@ -461,23 +461,24 @@ const App = (() => {
     `).join('');
 
     // Stats
-    const totalExpenses = trip.expenses.reduce((sum, e) => sum + e.amount, 0);
-    const balances = calculateBalances(trip);
-    const myBalance = balances[user.id] || 0;
+    const totalExpenses = trip.expenses
+      .filter(e => !e.isSettlement)
+      .reduce((sum, e) => sum + e.amount, 0);
+
+    let personalTotal = 0;
+    trip.expenses.forEach(e => {
+      if (e.paidBy === user.id) {
+        personalTotal += e.amount;
+      }
+      if (e.isSettlement && e.shares && e.shares[user.id] !== undefined) {
+        personalTotal -= e.amount;
+      }
+    });
 
     document.getElementById('dashTotalExpenses').textContent = formatCurrency(totalExpenses);
     const balanceEl = document.getElementById('dashYourBalance');
-    balanceEl.textContent = formatCurrency(Math.abs(myBalance));
-    balanceEl.className = 'stat-value ' + (myBalance >= 0 ? 'stat-positive' : 'stat-negative');
-
-    document.getElementById('dashBalanceAmount').textContent = formatCurrency(myBalance);
-
-    // Balance bar
-    const maxAbs = Math.max(Math.abs(myBalance), totalExpenses / (trip.members.length || 1), 1);
-    const percent = Math.min(Math.max(((myBalance + maxAbs) / (2 * maxAbs)) * 100, 5), 95);
-    const fill = document.getElementById('dashBalanceFill');
-    fill.style.width = percent + '%';
-    fill.style.background = myBalance >= 0 ? 'var(--positive)' : 'var(--negative)';
+    balanceEl.textContent = formatCurrency(personalTotal);
+    balanceEl.className = 'stat-value'; // Reset to default style
   }
 
   // ==============================
@@ -656,35 +657,17 @@ const App = (() => {
       .reduce((sum, e) => sum + e.amount, 0);
     document.getElementById('expTotal').innerHTML = `<span class="currency">€</span>${totalExpenses.toFixed(2)}`;
 
-    // Gastos personales (cuanto te toca pagar a ti de todo el viaje)
+    // Gastos personales (Total pagado por ti - Total recuperado en liquidaciones)
     let personalTotal = 0;
-    trip.expenses
-      .filter(e => !e.isSettlement)
-      .forEach(e => {
-        if (e.shares && e.shares[user.id] !== undefined) {
-          personalTotal += e.shares[user.id];
-        } else if (e.splitBetween.includes(user.id)) {
-          personalTotal += e.amount / e.splitBetween.length;
-        }
-      });
-    document.getElementById('expPersonal').innerHTML = `<span class="currency">€</span>${personalTotal.toFixed(2)}`;
-
-    // Per person spent
-    const perPersonEl = document.getElementById('expPerPerson');
-    const perPersonSpent = {};
-    trip.members.forEach(m => perPersonSpent[m.id] = 0);
     trip.expenses.forEach(e => {
-      if (perPersonSpent[e.paidBy] !== undefined) {
-        perPersonSpent[e.paidBy] += e.amount;
+      if (e.paidBy === user.id) {
+        personalTotal += e.amount;
+      }
+      if (e.isSettlement && e.shares && e.shares[user.id] !== undefined) {
+        personalTotal -= e.amount;
       }
     });
-
-    perPersonEl.innerHTML = trip.members.map((m, i) => `
-      <div class="exp-per-person-item">
-        <div class="exp-per-person-dot" style="background:${MEMBER_COLORS[i % MEMBER_COLORS.length]}"></div>
-        ${formatCurrency(perPersonSpent[m.id] || 0)}
-      </div>
-    `).join('');
+    document.getElementById('expPersonal').innerHTML = `<span class="currency">€</span>${personalTotal.toFixed(2)}`;
 
     // Balances
     const balances = calculateBalances(trip);

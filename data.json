@@ -11,5 +11,38 @@
     ],
     "activities": [],
     "expenses": []
+  },
+  {
+    "id": "trip_1774435179791",
+    "code": "PARPA2026",
+    "destination": "ParParis",
+    "startDate": "2026-04-01",
+    "endDate": "2026-04-10",
+    "members": [
+      {
+        "id": "user_1774435134050",
+        "name": "TestUser"
+      }
+    ],
+    "imageUrl": "",
+    "activities": [],
+    "expenses": [
+      {
+        "id": "exp_1774435236671",
+        "description": "Cena",
+        "amount": 100,
+        "paidBy": "user_1774435134050",
+        "splitBetween": [
+          "user_1774435134050"
+        ],
+        "shares": {
+          "user_1774435134050": 100
+        },
+        "splitType": "equal",
+        "date": "2026-03-25T10:40:36.671Z",
+        "createdBy": "user_1774435134050"
+      }
+    ],
+    "createdAt": "2026-03-25T10:39:39.791Z"
   }
 ]
